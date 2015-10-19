@@ -1,0 +1,47 @@
+---
+title: "Fitbit Flex"
+author: "Howanu"
+date: "Saturday, October 17, 2015"
+output: html_document
+---
+
+```{r libraries}
+library(plyr)
+```
+
+
+```{r read_n_split}
+# IN: full path to a fitbit file that has sections separated by blank lines
+# OUT: List of sections
+read_n_split_fn <- function(fullpath) {
+  raw = readLines(fullpath)
+  after_blank_line_ndx <- grep ("^$",raw)+1
+  ndx_ndx             <- grep("^[a-zA-Z]+", raw[after_blank_line_ndx])
+  
+  start_line <- c(1,after_blank_line_ndx[ndx_ndx])
+  end_line <- c((start_line - 1)[-1], length(raw))
+
+  dlply(data.frame(s=start_line,e=end_line), names(df), 
+        function(df) {
+          raw[(df$s[1]):(df$e[1])]
+          })
+}
+
+sections <- llply(dir(path = "data", pattern = "*.csv", 
+          full.names = TRUE,ignore.case = TRUE)
+      , function(filename) { list(filename, read_n_split_fn(filename)) })
+#ldply(files,  )
+```
+
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
