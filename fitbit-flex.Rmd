@@ -5,12 +5,15 @@ date: "Saturday, October 17, 2015"
 output: html_document
 ---
 
+TODO: aggregate by date, not category. Append measurement column name
+to the category, e.g. Body_Weight or Activities_Steps
+
 ```{r libraries}
 library(plyr)
 ```
 
 
-```{r read_n_split}
+```{r read_fns}
 # IN: full path to a fitbit file that has sections separated by blank lines
 # OUT: List of sections
 read_n_split_fn <- function(fullpath) {
@@ -21,27 +24,43 @@ read_n_split_fn <- function(fullpath) {
   start_line <- c(1,after_blank_line_ndx[ndx_ndx])
   end_line <- c((start_line - 1)[-1], length(raw))
 
-  dlply(data.frame(s=start_line,e=end_line), names(df), 
-        function(df) {
-          raw[(df$s[1]):(df$e[1])]
-          })
+  mlply(matrix(c(start_line, end_line), ncol=2),
+        function(s,e) { raw[s:e] })
 }
 
-sections <- llply(dir(path = "data", pattern = "*.csv", 
-          full.names = TRUE,ignore.case = TRUE)
-      , function(filename) { list(filename, read_n_split_fn(filename)) })
-#ldply(files,  )
+# IN: A section from the fitbit file
+# OUT: A data frame for the section
+parse_section <- function(section) {
+  category <- section[1]
+  df <- read.csv(text=section[-1])
+  df$category <- category
+  df
+}
+
+# IN: A fitbit file
+# OUT: A data frame for the file
+parse_one_file <- function(filename) { 
+  df <- ldply(read_n_split_fn(filename), parse_section)
+  df$filename <- filename
+  df
+  }
+              
+# IN: A data directory
+# OUT: A data frame for all fitbit files in the directory
+parse_data_dir <- function(data_dir) {
+  ldply(dir(path = data_dir, pattern = "*.csv", 
+            full.names = TRUE,ignore.case = TRUE),
+        parse_one_file)
+}
 ```
 
 
-```{r}
-summary(cars)
+```{r read_data, cache=TRUE}
+fb <- parse_data_dir("data")
 ```
 
-You can also embed plots, for example:
+## Data Summary
 
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+There were `r length(unique(fb$filename))` files,
+`r length(unique(fb$category))` measurement categories,
+and `r nrow(fb)` measurement days.
